@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Card design preview</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<style>
+  body { margin: 0; padding: 24px; background: #f2f0ff; font-family: Mitr, sans-serif; }
+  #sheet { display: flex; flex-wrap: wrap; gap: 24px; }
+  #sheet svg { width: 300px; height: 420px; display: block; }
+  body.render #sheet svg { width: 600px; height: 840px; }
+</style>
+</head>
+<body>
+<div id="sheet"></div>
+<script src="cards.js"></script>
+<script>
+  const A = window.CARD_ART;
+  const sheet = document.getElementById('sheet');
+  if (location.hash === '#render') document.body.classList.add('render');
+  sheet.innerHTML = A.WORDS.map(A.front).join('') + A.back();
+</script>
+</body>
+</html>
