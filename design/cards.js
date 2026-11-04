@@ -5,7 +5,7 @@
   const W = 600, H = 840;
 
   const WORDS = [
-    { id: 'sunny',  en: 'sunny',  th: 'แดดจ้า',
+    { id: 'sunny',  en: 'sunny',  th: 'แดดออกมาก',
       c1: '#FFE066', c2: '#FF9F1C', ink: '#B4540A', letters: ['#FF6B35', '#FFB703', '#FB5607', '#FF006E', '#F77F00'] },
     { id: 'cloudy', en: 'cloudy', th: 'มีเมฆมาก',
       c1: '#CFE3FF', c2: '#7FA3D9', ink: '#2F4F86', letters: ['#5B7FC7', '#7B6CD9', '#4C9BE8', '#6C8EBF', '#8C7AE6', '#3E7CB1'] },

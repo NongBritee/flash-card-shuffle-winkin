@@ -1,6 +1,8 @@
 (function () {
   const WORDS = window.WORDS;
-  const { say, stop, unlock, hasThaiVoice, SFX } = window.Speech;
+  const { say, stop, unlock: unlockSpeech, hasThaiVoice, playClip, preloadClips, SFX } = window.Speech;
+  const clipUrl = w => `audio/th/${w.id}.mp3`;   // recorded Thai answer
+  const unlock = () => unlockSpeech(clipUrl(WORDS[0]));
   const $ = s => document.querySelector(s);
   const table = $('#table'), detail = $('#detail'), win = $('#win');
   const bigImg = $('#bigImg'), cover = $('#cover'), bubble = $('#bubble');
@@ -16,6 +18,7 @@
 
   // preload fronts
   WORDS.forEach(w => { const i = new Image(); i.src = `cards/${w.id}.webp`; });
+  preloadClips(WORDS.map(clipUrl));
 
   let slots = [];          // {el, word}
   let busy = false;
@@ -191,7 +194,10 @@
     thaiWord.classList.remove('pop'); thaiWord.offsetWidth; thaiWord.classList.add('pop');
     await wait(350);
     if (t !== token) return;
-    if (hasThaiVoice()) await say('แปลว่า ' + w.th, 'th-TH', 0.9);
+    // 1) recorded voice  2) device Thai voice  3) show a hint
+    if (await playClip(clipUrl(w))) return;
+    if (t !== token) return;
+    if (hasThaiVoice()) await say(w.th, 'th-TH', 0.9);
     else { noThaiVoiceNotice(); await wait(1500); }
   }
 
@@ -283,6 +289,7 @@
   $('#lucky').addEventListener('click', lucky);
   $('#again').addEventListener('click', () => { unlock(); win.hidden = true; token++; stop(); newRound(false); });
   document.addEventListener('pointerdown', unlock, { once: true });
+  document.addEventListener('touchend', unlock, { once: true });
 
   // pick 5 / 3 / 2 cards per row — whichever gives the biggest card that still fits the free space
   function fitTable() {
