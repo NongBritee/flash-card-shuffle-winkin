@@ -71,7 +71,7 @@
       clip.onended = () => end(true);
       clip.onerror = () => end(false);
       clip.muted = false;
-      if (!clip.src.endsWith(url)) clip.src = url;
+      if (!clip.src.endsWith(url.replace(/^\.?\//, ''))) clip.src = url;
       try { clip.currentTime = 0; } catch (e) { /* not loaded yet */ }
       const p = clip.play();
       if (p && p.catch) p.catch(() => end(false));
