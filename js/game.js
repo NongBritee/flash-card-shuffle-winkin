@@ -5,6 +5,10 @@
   const table = $('#table'), detail = $('#detail'), win = $('#win');
   const bigImg = $('#bigImg'), cover = $('#cover'), bubble = $('#bubble');
   const lettersEl = $('#letters'), thaiWord = $('#thaiWord'), scoreEl = $('#score'), hint = $('#hint');
+  // speak letter names as words — iOS reads a single capital as "capital A"
+  const LETTER = { a: 'ay', b: 'bee', c: 'see', d: 'dee', e: 'ee', f: 'ef', g: 'jee', h: 'aitch', i: 'eye', j: 'jay', k: 'kay', l: 'el', m: 'em',
+    n: 'en', o: 'oh', p: 'pee', q: 'cue', r: 'ar', s: 'ess', t: 'tee', u: 'you', v: 'vee', w: 'double you', x: 'ex', y: 'why', z: 'zee' };
+  const letterName = ch => LETTER[ch.toLowerCase()] || ch;
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const rand = n => Math.floor(Math.random() * n);
 
@@ -162,7 +166,7 @@
     for (let i = 0; i < w.en.length; i++) {
       if (t !== token) return;
       light(i); SFX.pop();
-      await say(w.en[i].toUpperCase(), 'en-US', 0.85);
+      await say(letterName(w.en[i]), 'en-US', 0.85);
       await wait(160);
     }
     if (t !== token) return;
@@ -198,7 +202,7 @@
   async function letter(i) {
     const t = ++token, w = current; stop(); bubble.hidden = true;
     light(i); SFX.pop();
-    await say(w.en[i].toUpperCase(), 'en-US', 0.85);
+    await say(letterName(w.en[i]), 'en-US', 0.85);
     if (t === token) light(-1);
   }
 
@@ -260,6 +264,30 @@
   $('#again').addEventListener('click', () => { unlock(); win.hidden = true; token++; stop(); newRound(false); });
   document.addEventListener('pointerdown', unlock, { once: true });
 
+  // pick 5 / 3 / 2 cards per row — whichever gives the biggest card that still fits the free space
+  function fitTable() {
+    const app = $('#app'), cs = getComputedStyle(app);
+    const W = app.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const tcs = getComputedStyle(table);
+    const H = table.clientHeight - parseFloat(tcs.paddingTop) - parseFloat(tcs.paddingBottom);
+    const gap = Math.max(10, Math.min(28, Math.min(W, H) * 0.03));
+    let best = { w: 0, cols: 5 };
+    for (const cols of [5, 3, 2]) {
+      const rows = Math.ceil(WORDS.length / cols);
+      const w = Math.min((W - (cols - 1) * gap) / cols, ((H - (rows - 1) * gap) / rows) * 5 / 7);
+      if (w > best.w) best = { w, cols };
+    }
+    const cw = Math.max(60, Math.floor(Math.min(best.w, 400)));
+    table.style.setProperty('--cw', cw + 'px');
+    table.style.setProperty('--gap', gap + 'px');
+    table.style.maxWidth = Math.ceil(best.cols * cw + (best.cols - 1) * gap + 2) + 'px';
+  }
+  window.addEventListener('resize', fitTable);
+  window.addEventListener('orientationchange', () => setTimeout(fitTable, 200));
+  if (window.ResizeObserver) new ResizeObserver(fitTable).observe(table);
+  if (document.fonts) document.fonts.ready.then(fitTable);
+
   build();
+  fitTable();
   newRound(true);
 })();

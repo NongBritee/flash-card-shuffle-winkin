@@ -16,38 +16,39 @@ button:focus-visible { outline: 4px solid #5b3fd9; outline-offset: 3px; }
 .th, small, b { font-family: 'Mitr', 'Fredoka', sans-serif; }
 
 #app {
-  height: 100%; display: flex; flex-direction: column; align-items: center;
+  height: 100%; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; align-items: center;
   padding: max(10px, env(safe-area-inset-top)) 16px max(10px, env(safe-area-inset-bottom));
 }
 
 /* ---------- header ---------- */
-#top { width: 100%; max-width: 1100px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
-h1 { margin: 0; line-height: 1; font-size: clamp(22px, 4.2vmin, 40px); }
+#top { width: 100%; max-width: 1400px; flex: none; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+h1 { margin: 0; line-height: 1; font-size: clamp(22px, 4.2vmin, 60px); }
 h1 .en { color: #fff; -webkit-text-stroke: 0; text-shadow: 0 3px 0 #5b3fd9, 0 0 0 #5b3fd9, 3px 0 0 #5b3fd9, -3px 0 0 #5b3fd9, 0 -3px 0 #5b3fd9; }
 h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; margin-top: 6px; }
-#score { display: flex; gap: 2px; font-size: clamp(18px, 3.6vmin, 30px); }
+#score { display: flex; gap: 2px; font-size: clamp(18px, 3.6vmin, 48px); }
 #score i { font-style: normal; filter: grayscale(1) opacity(.35); transition: filter .3s, transform .3s; }
 #score i.on { filter: none; transform: scale(1.15); }
 .tools { display: flex; gap: 10px; }
 .round {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-width: 64px; height: 64px; padding: 4px 10px; border-radius: 20px;
+  min-width: clamp(64px, 7.5vmin, 110px); height: clamp(64px, 7.5vmin, 110px); padding: 4px 10px; border-radius: 22%;
   background: #fff; box-shadow: 0 5px 0 #c9bff5; transition: transform .12s;
 }
-.round span { font-size: 26px; line-height: 1; }
-.round small { font-size: 13px; font-weight: 500; }
+.round span { font-size: clamp(26px, 3.2vmin, 46px); line-height: 1; }
+.round small { font-size: clamp(13px, 1.5vmin, 20px); font-weight: 500; }
 .round:active { transform: translateY(4px); box-shadow: 0 1px 0 #c9bff5; }
 
-#hint { margin: 1.2vmin 0 0; font-family: Mitr, sans-serif; font-weight: 500; font-size: clamp(16px, 3vmin, 26px); color: #3b23a8; animation: bob 1.6s ease-in-out infinite; }
+#hint { flex: none; margin: 1.2vmin 0 0; font-family: Mitr, sans-serif; font-weight: 500; font-size: clamp(16px, 3vmin, 40px); color: #3b23a8; animation: bob 1.6s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-5px); } }
 
 /* ---------- table ---------- */
+/* --cw / --gap / max-width are set by fitTable() in js/game.js so all 5 cards always fit on screen */
 #table {
-  flex: 1; width: 100%; max-width: 1200px;
+  flex: 1 1 0; min-height: 0; width: 100%; padding: 14px 0 6px;
   display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
-  gap: 2.4vmin; --cw: min(17.5vw, 38vh); perspective: 1400px;
+  gap: var(--gap, 2.4vmin); --cw: min(17.5vw, 38vh); perspective: 1400px;
 }
-@media (orientation: portrait) { #table { --cw: min(27vw, 24vh); gap: 3vw; } }
+@media (orientation: portrait) { #table { --cw: min(27vw, 22vh); } }
 .card {
   position: relative; width: var(--cw); aspect-ratio: 5 / 7; padding: 0;
   border-radius: calc(var(--cw) * .08);
@@ -81,11 +82,11 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
   position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
   padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--bg, #5b3fd9) 55%, rgba(20, 10, 60, .55));
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto;
 }
 #detail[hidden], #win[hidden] { display: none; }
-.panel { display: flex; align-items: center; justify-content: center; gap: 4vmin; width: 100%; height: 100%; max-width: 1100px; }
-.cardBig { position: relative; height: min(88vh, 640px); aspect-ratio: 5 / 7; flex: none; }
+.panel { display: flex; align-items: center; justify-content: center; gap: 4vmin; width: 100%; min-height: 100%; max-width: 1500px; }
+.cardBig { position: relative; height: min(86vh, 900px); aspect-ratio: 5 / 7; flex: none; }
 .cardBig img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 12px 20px rgba(20, 10, 60, .45)); }
 #detail.show .cardBig { animation: zoomIn .55s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes zoomIn { from { transform: scale(.4) rotate(-8deg); opacity: 0; } }
@@ -93,7 +94,7 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
 /* sticker that hides the Thai label (pill on card at x60 y712 w480 h88 of 600x840) */
 #cover {
   position: absolute; left: 9.2%; top: 84.1%; width: 81.6%; height: 11.8%;
-  border-radius: 999px; font-family: Mitr, sans-serif; font-weight: 600; font-size: min(3.4vh, 24px);
+  border-radius: 999px; font-family: Mitr, sans-serif; font-weight: 600; font-size: min(3.4vh, 36px);
   color: #fff; background: repeating-linear-gradient(-45deg, #ff5da2 0 14px, #ff7eb6 14px 28px);
   border: 4px solid #fff; box-shadow: 0 4px 0 rgba(0, 0, 0, .15);
   animation: wiggle 2.4s ease-in-out infinite;
@@ -105,7 +106,7 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
 #bubble {
   position: absolute; left: 50%; top: 4%; transform: translateX(-50%);
   background: #fff; border-radius: 26px; padding: 10px 22px; text-align: center; white-space: nowrap;
-  font-family: Mitr, sans-serif; font-size: min(3.4vh, 24px); color: var(--ink);
+  font-family: Mitr, sans-serif; font-size: min(3.4vh, 36px); color: var(--ink);
   box-shadow: 0 8px 0 rgba(0, 0, 0, .12); animation: popIn .35s cubic-bezier(.2, 1.8, .4, 1);
 }
 #bubble b { font-family: Fredoka, sans-serif; font-size: 1.7em; line-height: 1.1; }
@@ -117,15 +118,15 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
 .side { display: flex; flex-direction: column; align-items: center; gap: 2.4vmin; min-width: 0; }
 #letters { display: flex; gap: 1.2vmin; flex-wrap: nowrap; }
 .tile {
-  width: min(11vmin, 84px); aspect-ratio: 1; border-radius: 22%;
+  width: min(11vmin, 130px); aspect-ratio: 1; border-radius: 22%;
   background: #fff; color: var(--c); font-family: Fredoka, sans-serif; font-weight: 700;
-  font-size: min(8vmin, 62px); line-height: 1; padding-bottom: .1em;
+  font-size: min(8vmin, 96px); line-height: 1; padding-bottom: .1em;
   box-shadow: 0 6px 0 var(--c); transition: transform .15s, background .15s, color .15s;
 }
 .tile.on { background: var(--c); color: #fff; transform: translateY(-8px) scale(1.12); box-shadow: 0 10px 0 rgba(0, 0, 0, .18); }
 .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--c); }
 #thaiWord {
-  font-family: Mitr, sans-serif; font-weight: 600; font-size: min(8vmin, 56px); color: var(--ink);
+  font-family: Mitr, sans-serif; font-weight: 600; font-size: min(8vmin, 84px); color: var(--ink);
   background: #fff; border-radius: 999px; padding: .1em .9em; box-shadow: 0 6px 0 rgba(0, 0, 0, .12);
 }
 #thaiWord.pop { animation: popIn2 .5s cubic-bezier(.2, 1.8, .4, 1); }
@@ -134,19 +135,19 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
 .actions { display: flex; gap: 1.6vmin; }
 .act {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  min-width: min(17vmin, 120px); padding: 1.4vmin 2vmin; border-radius: 24px;
+  min-width: min(17vmin, 190px); padding: 1.4vmin 2vmin; border-radius: 24px;
   background: #fff; box-shadow: 0 7px 0 rgba(0, 0, 0, .16); transition: transform .12s;
 }
-.act span { font-size: min(7vmin, 44px); line-height: 1; }
-.act b { font-size: min(3.6vmin, 24px); font-weight: 600; }
-.act small { font-family: Fredoka, sans-serif; font-size: min(2.6vmin, 16px); opacity: .7; }
+.act span { font-size: min(7vmin, 66px); line-height: 1; }
+.act b { font-size: min(3.6vmin, 36px); font-weight: 600; }
+.act small { font-family: Fredoka, sans-serif; font-size: min(2.6vmin, 24px); opacity: .7; }
 .act:active { transform: translateY(5px); box-shadow: 0 2px 0 rgba(0, 0, 0, .16); }
 .act.spell { background: #fff3bf; }
 .act.say { background: #d3f9d8; }
 .act.thai { background: #ffdeeb; }
 .act.done { flex-direction: row; gap: 10px; background: #5b3fd9; color: #fff; box-shadow: 0 7px 0 #3b23a8; padding: 1.6vmin 3.4vmin; }
-.act.done b { font-size: min(4vmin, 26px); }
-.act.done span { font-size: min(5vmin, 32px); }
+.act.done b { font-size: min(4vmin, 40px); }
+.act.done span { font-size: min(5vmin, 48px); }
 
 @media (orientation: portrait) {
   .panel { flex-direction: column; gap: 2.2vh; }
