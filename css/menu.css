@@ -1,0 +1,60 @@
+/* Home page: grid of vocabulary sets */
+#menu { justify-content: flex-start; }
+#menu header { flex: none; text-align: center; margin: .6vmin 0 2vmin; }
+#menu h1 { font-size: clamp(30px, 6vmin, 72px); }
+#menu .pick { margin: 1vmin 0 0; font-family: Mitr, sans-serif; font-weight: 500; font-size: clamp(16px, 2.8vmin, 34px); color: var(--accentDark); animation: bob 1.6s ease-in-out infinite; }
+
+#sets {
+  flex: 1 0 auto; width: 100%; max-width: 1300px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.4vmin; align-content: center;
+  padding-bottom: 2vmin;
+}
+@media (orientation: portrait) { #sets { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3vw; } }
+@media (orientation: landscape) and (max-height: 540px) { #sets { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+.setTile {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: .6vmin;
+  padding: 1.6vmin 1.2vmin 1.4vmin; border-radius: 28px; text-decoration: none; color: #fff;
+  background: linear-gradient(140deg, var(--c1), var(--c2) 60%, var(--c3));
+  border: 5px solid #fff; box-shadow: 0 8px 0 rgba(0, 0, 0, .16); transition: transform .15s;
+  animation: popIn2 .45s cubic-bezier(.2, 1.5, .4, 1) backwards;
+}
+.setTile:nth-child(2) { animation-delay: .05s; } .setTile:nth-child(3) { animation-delay: .1s; }
+.setTile:nth-child(4) { animation-delay: .15s; } .setTile:nth-child(5) { animation-delay: .2s; } .setTile:nth-child(6) { animation-delay: .25s; }
+.setTile:hover { transform: translateY(-4px) rotate(-.6deg); }
+.setTile:active { transform: translateY(4px); box-shadow: 0 3px 0 rgba(0, 0, 0, .16); }
+.setTile:focus-visible { outline: 5px solid var(--accent); outline-offset: 3px; }
+
+.setTile .no {
+  position: absolute; left: -8px; top: -10px; width: clamp(34px, 4.6vmin, 56px); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center; background: #fff; color: var(--c2); font-weight: 700; font-size: clamp(18px, 2.6vmin, 30px);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .15);
+}
+.fan { position: relative; height: min(20vh, 24vw); aspect-ratio: 1.35; margin-bottom: 1.4vmin; }
+@media (orientation: portrait) { .fan { height: min(14.5vh, 30vw); } }
+@media (orientation: landscape) and (max-height: 540px) { .fan { height: min(32vh, 10vw); } }
+.fan img {
+  position: absolute; bottom: 0; left: 50%; height: 100%; aspect-ratio: 5 / 7; transform-origin: 50% 100%;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .25)); transition: transform .25s;
+}
+.fan img:nth-child(1) { transform: translateX(-50%) rotate(-16deg) translateX(-34%); }
+.fan img:nth-child(2) { transform: translateX(-50%) rotate(16deg) translateX(34%); }
+.fan img:nth-child(3) { transform: translateX(-50%); }
+@media (orientation: portrait) {
+  .fan img:nth-child(1) { transform: translateX(-50%) rotate(-12deg) translateX(-26%); }
+  .fan img:nth-child(2) { transform: translateX(-50%) rotate(12deg) translateX(26%); }
+}
+.setTile:hover .fan img:nth-child(1) { transform: translateX(-50%) rotate(-22deg) translateX(-44%); }
+.setTile:hover .fan img:nth-child(2) { transform: translateX(-50%) rotate(22deg) translateX(44%); }
+
+.setTile .name { position: relative; z-index: 2; text-align: center; line-height: 1.05; }
+.setTile .en { display: block; font-family: Fredoka, sans-serif; font-weight: 700; font-size: clamp(18px, 3vmin, 38px); text-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
+.setTile .th { display: block; font-family: Mitr, sans-serif; font-weight: 500; font-size: clamp(14px, 2.2vmin, 26px); }
+.setTile .words {
+  font-family: Fredoka, sans-serif; font-size: clamp(11px, 1.6vmin, 18px); background: rgba(255, 255, 255, .25);
+  border-radius: 999px; padding: .2em .8em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.setTile .stars { font-size: clamp(14px, 2.2vmin, 26px); line-height: 1; }
+.setTile .stars i { font-style: normal; filter: grayscale(1) brightness(1.6) opacity(.5); }
+.setTile .stars i.on { filter: none; }
+@media (orientation: landscape) and (max-height: 540px) { .setTile .words { display: none; } }

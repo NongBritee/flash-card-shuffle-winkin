@@ -6,20 +6,46 @@
 <link rel="stylesheet" href="../fonts/fonts.css">
 <style>
   body { margin: 0; padding: 24px; background: #f2f0ff; font-family: Mitr, sans-serif; }
+  nav { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  nav a { padding: 6px 12px; background: #fff; border-radius: 10px; text-decoration: none; color: #3b23a8; }
   #sheet { display: flex; flex-wrap: wrap; gap: 24px; }
   #sheet svg { width: 300px; height: 420px; display: block; }
-  body.render { background: transparent; }
+  body.render { background: transparent; padding: 0; }
+  body.render nav { display: none; }
   body.render #sheet svg { width: 600px; height: 840px; }
 </style>
 </head>
 <body>
+<!-- usage: design/cards.html?set=<id>   (render mode: add #render) -->
+<nav id="nav"></nav>
 <div id="sheet"></div>
-<script src="cards.js"></script>
+<script src="../js/core/sets.js"></script>
+<script src="common.js"></script>
 <script>
-  const A = window.CARD_ART;
-  const sheet = document.getElementById('sheet');
+  const IDS = ['weather', 'days', 'things', 'home', 'animals', 'farm'];
+  const id = new URLSearchParams(location.search).get('set') || IDS[0];
   if (location.hash === '#render') document.body.classList.add('render');
-  sheet.innerHTML = A.WORDS.map(A.front).join('') + A.back();
+  document.getElementById('nav').innerHTML = IDS.map(s => `<a href="?set=${s}">${s}</a>`).join('');
+  const load = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+  window.READY = (async () => {
+    await load(`../sets/${id}/set.js`);
+    await load(`sets/${id}.js`);
+    const set = SETS.get(id);
+    const sheet = document.getElementById('sheet');
+    sheet.innerHTML = set.words.map(w => ART.front(set, w)).join('') + ART.back(set);
+    await document.fonts.ready;
+    // shrink long words so they fit the card width
+    sheet.querySelectorAll('text.word, text.thai').forEach(t => {
+      const max = t.classList.contains('thai') ? 440 : 520;
+      const w = t.getComputedTextLength();
+      if (w > max) {
+        const g = t.closest('[font-size]') === t ? t : t.parentNode;
+        const fs = parseFloat(t.getAttribute('font-size') || g.getAttribute('font-size'));
+        t.setAttribute('font-size', (fs * max / w).toFixed(1));
+      }
+    });
+    return set.words.map(w => w.id).concat('back');
+  })();
 </script>
 </body>
 </html>
