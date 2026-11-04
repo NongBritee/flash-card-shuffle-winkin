@@ -1,7 +1,9 @@
 (function () {
   const WORDS = window.WORDS;
   const { say, stop, unlock: unlockSpeech, hasThaiVoice, playClip, preloadClips, SFX } = window.Speech;
-  const clipUrl = w => `audio/th/${w.id}.mp3`;   // recorded Thai answer
+  const V = '5';                                  // bump when card images / voices change (cache-busting)
+  const img = id => `cards/${id}.webp?v=${V}`;
+  const clipUrl = w => `audio/th/${w.id}.mp3?v=${V}`;   // recorded Thai answer
   const unlock = () => unlockSpeech(clipUrl(WORDS[0]));
   const $ = s => document.querySelector(s);
   const table = $('#table'), detail = $('#detail'), win = $('#win');
@@ -17,7 +19,7 @@
   const rand = n => Math.floor(Math.random() * n);
 
   // preload fronts
-  WORDS.forEach(w => { const i = new Image(); i.src = `cards/${w.id}.webp`; });
+  WORDS.forEach(w => { const i = new Image(); i.src = img(w.id); });
   preloadClips(WORDS.map(clipUrl));
 
   let slots = [];          // {el, word}
@@ -32,7 +34,7 @@
       const el = document.createElement('button');
       el.className = 'card';
       el.setAttribute('aria-label', `การ์ดใบที่ ${i + 1}`);
-      el.innerHTML = `<div class="flip"><img class="face back" src="cards/back.webp" alt="" draggable="false"><img class="face front" alt="" draggable="false"></div><span class="tick">⭐</span>`;
+      el.innerHTML = `<div class="flip"><img class="face back" src="${img('back')}" alt="" draggable="false"><img class="face front" alt="" draggable="false"></div><span class="tick">⭐</span>`;
       el.style.setProperty('--d', (i * 0.08) + 's');
       const slot = { el, word: null };
       el.addEventListener('click', () => pick(slot));
@@ -103,7 +105,7 @@
     const w = left[rand(left.length)];          // random word for the chosen card
     slot.word = w;
     const front = slot.el.querySelector('.front');
-    front.src = `cards/${w.id}.webp`;
+    front.src = img(w.id);
     slot.el.classList.add('glow');
     await wait(120);
     SFX.flip();
@@ -142,7 +144,7 @@
     current = w;
     detail.style.setProperty('--ink', w.ink);
     detail.style.setProperty('--bg', w.bg);
-    bigImg.src = `cards/${w.id}.webp`;
+    bigImg.src = img(w.id);
     bigImg.alt = `${w.en} — ${w.th}`;
     cover.hidden = false; cover.classList.remove('peel');
     thaiWord.hidden = true; thaiWord.textContent = w.th;
@@ -247,7 +249,7 @@
 
   /* ---------- win ---------- */
   function showWin() {
-    $('#winCards').innerHTML = WORDS.map(w => `<img src="cards/${w.id}.webp" alt="${w.en}">`).join('');
+    $('#winCards').innerHTML = WORDS.map(w => `<img src="${img(w.id)}" alt="${w.en}">`).join('');
     win.hidden = false;
     SFX.tada(); confetti();
     const t = ++token;
