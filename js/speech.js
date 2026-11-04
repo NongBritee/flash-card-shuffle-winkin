@@ -40,15 +40,44 @@
       if (synth.paused) synth.resume();
     });
   }
-  function stop() { if (synth) synth.cancel(); }
+  function stop() { if (synth) synth.cancel(); try { clip.pause(); } catch (e) {} }
   // iOS / Safari: speech must first be started from a user gesture
   let unlocked = false;
-  function unlock() {
+  function unlock(clipUrl) {
+    unlockClip(clipUrl);
     if (unlocked) return; unlocked = true;
     if (synth) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }
     ctx();
   }
   const hasThaiVoice = () => !!pickVoice('th-TH');
+
+  /* ---- recorded clips (audio/th/*.mp3) ---- */
+  const clip = new Audio();
+  clip.preload = 'auto';
+  let clipUnlocked = false;
+  function unlockClip(url) {
+    // iOS only lets an <audio> element play later if it was started once inside a tap
+    if (clipUnlocked || !url) return; clipUnlocked = true;
+    clip.muted = true; clip.src = url;
+    const p = clip.play();
+    const done = () => { clip.pause(); clip.muted = false; };
+    if (p && p.then) p.then(done, done); else done();
+  }
+  function playClip(url) {
+    return new Promise(resolve => {
+      let fin = false;
+      const end = ok => { if (fin) return; fin = true; clearTimeout(t); clip.onended = clip.onerror = null; resolve(ok); };
+      const t = setTimeout(() => end(false), 8000);
+      clip.onended = () => end(true);
+      clip.onerror = () => end(false);
+      clip.muted = false;
+      if (!clip.src.endsWith(url)) clip.src = url;
+      try { clip.currentTime = 0; } catch (e) { /* not loaded yet */ }
+      const p = clip.play();
+      if (p && p.catch) p.catch(() => end(false));
+    });
+  }
+  function preloadClips(urls) { urls.forEach(u => { try { fetch(u).catch(() => {}); } catch (e) {} }); }
 
   /* ---- sound effects ---- */
   let ac = null;
@@ -92,5 +121,5 @@
     peel() { whoosh(0, .22, .18); tone(400, .18, 'sine', .12, .05, 2); },
   };
 
-  window.Speech = { say, stop, unlock, hasThaiVoice, SFX };
+  window.Speech = { say, stop, unlock, hasThaiVoice, playClip, preloadClips, SFX };
 })();
