@@ -28,7 +28,7 @@
       const u = new SpeechSynthesisUtterance(text);
       u.lang = lang;
       const v = pickVoice(lang);
-      if (v) u.voice = v;
+      if (v) { try { u.voice = v; } catch (e) { /* keep default voice */ } }
       u.rate = rate;
       u.pitch = 1.1;
       let done = false;

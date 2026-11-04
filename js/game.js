@@ -1,13 +1,15 @@
 (function () {
   const WORDS = window.WORDS;
-  const { say, stop, unlock, SFX } = window.Speech;
+  const { say, stop, unlock, hasThaiVoice, SFX } = window.Speech;
   const $ = s => document.querySelector(s);
   const table = $('#table'), detail = $('#detail'), win = $('#win');
   const bigImg = $('#bigImg'), cover = $('#cover'), bubble = $('#bubble');
   const lettersEl = $('#letters'), thaiWord = $('#thaiWord'), scoreEl = $('#score'), hint = $('#hint');
-  // speak letter names as words — iOS reads a single capital as "capital A"
-  const LETTER = { a: 'ay', b: 'bee', c: 'see', d: 'dee', e: 'ee', f: 'ef', g: 'jee', h: 'aitch', i: 'eye', j: 'jay', k: 'kay', l: 'el', m: 'em',
+  // speak letter names as words — iOS reads a single capital as "capital A" (and "ay" can sound like "eye", so A stays a lone lowercase a)
+  const LETTER = { a: 'a', b: 'bee', c: 'see', d: 'dee', e: 'ee', f: 'ef', g: 'jee', h: 'aitch', i: 'eye', j: 'jay', k: 'kay', l: 'el', m: 'em',
     n: 'en', o: 'oh', p: 'pee', q: 'cue', r: 'ar', s: 'ess', t: 'tee', u: 'you', v: 'vee', w: 'double you', x: 'ex', y: 'why', z: 'zee' };
+  // spelling speed: lower rate = slower voice; gap = pause between letters (ms)
+  const LETTER_RATE = 0.6, LETTER_GAP = 650, WORD_RATE = 0.65;
   const letterName = ch => LETTER[ch.toLowerCase()] || ch;
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const rand = n => Math.floor(Math.random() * n);
@@ -166,17 +168,39 @@
     for (let i = 0; i < w.en.length; i++) {
       if (t !== token) return;
       light(i); SFX.pop();
-      await say(letterName(w.en[i]), 'en-US', 0.85);
-      await wait(160);
+      await say(letterName(w.en[i]), 'en-US', LETTER_RATE);
+      await wait(LETTER_GAP);
     }
     if (t !== token) return;
     light('all');
-    await wait(200);
-    await say(w.en, 'en-US', 0.72);
+    await wait(500);
+    await say(w.en, 'en-US', WORD_RATE);
     if (t !== token) return;
-    await wait(300);
     light(-1);
+    await wait(500);
+    // then reveal + say the Thai meaning automatically
+    await revealThai(t, w);
+    if (t !== token) return;
+    await wait(400);
     repeatAfterMe(t, w);
+  }
+
+  async function revealThai(t, w) {
+    if (!cover.hidden) { SFX.peel(); cover.classList.add('peel'); setTimeout(() => { cover.hidden = true; }, 450); }
+    thaiWord.hidden = false;
+    thaiWord.classList.remove('pop'); thaiWord.offsetWidth; thaiWord.classList.add('pop');
+    await wait(350);
+    if (t !== token) return;
+    if (hasThaiVoice()) await say('แปลว่า ' + w.th, 'th-TH', 0.9);
+    else { noThaiVoiceNotice(); await wait(1500); }
+  }
+
+  let noticeShown = false;
+  function noThaiVoiceNotice() {
+    if (noticeShown) return; noticeShown = true;
+    const n = document.getElementById('notice');
+    n.hidden = false;
+    setTimeout(() => { n.hidden = true; }, 9000);
   }
 
   async function repeatAfterMe(t, w) {
@@ -193,7 +217,7 @@
   async function sayWord() {
     const t = ++token, w = current; stop(); bubble.hidden = true;
     light('all');
-    await say(w.en, 'en-US', 0.72);
+    await say(w.en, 'en-US', WORD_RATE);
     if (t !== token) return;
     light(-1);
     repeatAfterMe(t, w);
@@ -202,21 +226,17 @@
   async function letter(i) {
     const t = ++token, w = current; stop(); bubble.hidden = true;
     light(i); SFX.pop();
-    await say(letterName(w.en[i]), 'en-US', 0.85);
+    await say(letterName(w.en[i]), 'en-US', LETTER_RATE);
     if (t === token) light(-1);
   }
 
   async function translate() {
     const t = ++token, w = current; stop(); bubble.hidden = true;
-    if (!cover.hidden) { SFX.peel(); cover.classList.add('peel'); setTimeout(() => { cover.hidden = true; }, 450); }
-    thaiWord.hidden = false;
-    thaiWord.classList.remove('pop'); thaiWord.offsetWidth; thaiWord.classList.add('pop');
     light('all');
-    await say(w.en, 'en-US', 0.75);
+    await say(w.en, 'en-US', WORD_RATE);
     if (t !== token) return;
     light(-1);
-    await wait(150);
-    await say('แปลว่า ' + w.th, 'th-TH', 0.9);
+    await revealThai(t, w);
   }
 
   /* ---------- win ---------- */
@@ -225,7 +245,7 @@
     win.hidden = false;
     SFX.tada(); confetti();
     const t = ++token;
-    say('Great job!', 'en-US', 0.85).then(() => t === token && say('เก่งมาก', 'th-TH', 0.95));
+    say('Great job!', 'en-US', 0.85).then(() => t === token && hasThaiVoice() && say('เก่งมาก', 'th-TH', 0.95));
   }
 
   /* ---------- confetti ---------- */

@@ -109,6 +109,13 @@ h1 .th { display: block; font-size: .5em; font-weight: 600; color: #3b23a8; marg
   font-family: Mitr, sans-serif; font-size: min(3.4vh, 36px); color: var(--ink);
   box-shadow: 0 8px 0 rgba(0, 0, 0, .12); animation: popIn .35s cubic-bezier(.2, 1.8, .4, 1);
 }
+#notice {
+  position: fixed; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%); width: max-content; max-width: 92vw; z-index: 15;
+  background: #2b2160; color: #fff; border-radius: 18px; padding: 10px 16px; text-align: center;
+  font-family: Mitr, sans-serif; font-size: min(2.6vh, 20px); line-height: 1.35; box-shadow: 0 6px 0 rgba(0, 0, 0, .2);
+}
+#notice small { font-size: .78em; opacity: .9; }
+#notice b { color: #ffd43b; font-weight: 600; }
 #bubble b { font-family: Fredoka, sans-serif; font-size: 1.7em; line-height: 1.1; }
 #bubble.say b { animation: pulse 1s ease-in-out infinite; display: inline-block; }
 #bubble.yay { font-size: min(4.4vh, 32px); }
