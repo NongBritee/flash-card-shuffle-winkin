@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Card design preview</title>
-<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../src/assets/fonts/fonts.css">
 <style>
   body { margin: 0; padding: 24px; background: #f2f0ff; font-family: Mitr, sans-serif; }
   nav { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -16,21 +16,20 @@
 </style>
 </head>
 <body>
-<!-- usage: design/cards.html?set=<id>   (render mode: add #render) -->
+<!-- usage: npm run dev, then open http://localhost:5173/design/cards.html?set=<id>   (render mode: add #render) -->
 <nav id="nav"></nav>
 <div id="sheet"></div>
-<script src="../js/core/sets.js"></script>
 <script src="common.js"></script>
-<script>
+<script type="module">
+  import { SETS, getSet } from "../src/sets/index.js";
   const IDS = ['weather', 'days', 'things', 'home', 'animals', 'farm'];
   const id = new URLSearchParams(location.search).get('set') || IDS[0];
   if (location.hash === '#render') document.body.classList.add('render');
   document.getElementById('nav').innerHTML = IDS.map(s => `<a href="?set=${s}">${s}</a>`).join('');
   const load = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
   window.READY = (async () => {
-    await load(`../sets/${id}/set.js`);
     await load(`sets/${id}.js`);
-    const set = SETS.get(id);
+    const set = getSet(id);
     const sheet = document.getElementById('sheet');
     sheet.innerHTML = set.words.map(w => ART.front(set, w)).join('') + ART.back(set);
     await document.fonts.ready;

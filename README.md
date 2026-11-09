@@ -23,40 +23,47 @@
 | 5 | Animals สัตว์น่ารัก | fish, lion, tiger, snake, bird |
 | 6 | Farm Animals สัตว์ในฟาร์ม | pig, cow, horse, duck, goat |
 
-## เปิดเล่น
-`python3 -m http.server` แล้วเข้า http://localhost:8000 หรือใช้ GitHub Pages (`.github/workflows/pages.yml`)
+## เปิดเล่น / พัฒนา (React + Vite)
+```bash
+npm install
+npm run dev        # เปิด http://localhost:5173 (แก้โค้ดแล้วรีโหลดเอง)
+npm run build      # สร้างเว็บจริงที่ dist/
+npm test           # build แล้วทดสอบอัตโนมัติด้วย Playwright
+npm run cards      # วาดภาพการ์ดใหม่ (ทุกชุด) → public/sets/<ชุด>/cards/
+```
+เว็บจริง deploy ด้วย GitHub Actions (`.github/workflows/pages.yml`) ซึ่งจะ build ก่อนแล้วอัปโหลด `dist/`
+**ควรตั้ง Settings → Pages → Source เป็น “GitHub Actions”** (ถ้ายังเป็น “Deploy from a branch” workflow จะ deploy ซ้ำทับให้อัตโนมัติ)
 
-เสียงอังกฤษใช้ Web Speech API ของเครื่อง (en‑US) ส่วนเฉลยไทยเล่นจากไฟล์เสียงอัดของชุดนั้น (`sets/<ชุด>/audio/<คำ>.mp3`)
+เสียงอังกฤษใช้ Web Speech API ของเครื่อง (en‑US) ส่วนเฉลยไทยเล่นจากไฟล์เสียงอัดของชุดนั้น (`public/sets/<ชุด>/audio/<คำ>.mp3`)
 ถ้ายังไม่มีไฟล์ จะใช้เสียงไทยของเครื่อง ถ้าเครื่องไม่มีเสียงไทย (เช่น Chrome บน Windows) จะขึ้นคำแนะนำ
 
 ## โครงสร้างโปรเจกต์
 ```
-index.html              หน้าเว็บ (หน้าแรก + หน้าเกม)
-js/app.js               router: #/ = หน้าแรก, #/<ชุด> = เกม
-js/core/                ส่วนกลาง (ใช้ร่วมทุกชุด)
-  sets.js               ทะเบียนชุดคำศัพท์ + path รูป/เสียง + ASSET_V (cache-busting)
-  speech.js             เสียงอ่าน (TTS), เล่นไฟล์เสียง, เอฟเฟกต์
-  game.js               เกมการ์ด (สับ, พลิก, สะกด, เฉลย, ฉลอง)
-  menu.js               หน้าเลือกชุด + ดาวสะสม
-css/base.css            สไตล์กลาง + ธีมสี (CSS variables)
-css/menu.css, game.css  สไตล์หน้าแรก / หน้าเกม
-sets/<ชุด>/             แยกเป็นชุด ๆ
-  set.js                คำศัพท์ คำไทย สีการ์ด ธีมพื้นหลัง หลังการ์ด
-  cards/<คำ>.webp       ภาพการ์ด (1200×1680) + back.webp
-  audio/<คำ>.mp3        เสียงเฉลยไทย (ไม่บังคับ ดู audio/README.md)
-design/                 ต้นฉบับภาพการ์ด (SVG)
-  common.js             ส่วนกลาง: กรอบการ์ด, หลังการ์ด, หน้ายิ้ม ฯลฯ
-  sets/<ชุด>.js         ฉากของแต่ละคำ
-  cards.html?set=<ชุด>  หน้าพรีวิว
-  render.js             node design/render.js [ชุด…] → sets/<ชุด>/cards/*.webp
-tests/smoke.js          ทดสอบอัตโนมัติด้วย Playwright: node tests/smoke.js
-fonts/                  Fredoka + Mitr (SIL OFL)
-assets/silence.mp3      ไฟล์เงียบสำหรับปลดล็อกเสียงบน iPhone
+index.html                 จุดเริ่มของ Vite
+src/
+  main.jsx                 mount React + โหลดฟอนต์/สไตล์
+  App.jsx                  router: #/ = หน้าแรก, #/<ชุด> = เกม + ธีมสีของชุด
+  components/              React components (ใช้ร่วมทุกชุด)
+    Menu.jsx, SetTile.jsx  หน้าเลือกชุด + ดาวสะสม
+    Game.jsx               เกมการ์ด: สับ, พลิก, ลำดับเสียง สะกด → อังกฤษ → ไทย
+    Card.jsx, DetailView.jsx, WinBox.jsx
+  hooks/                   useHashRoute (router), useFitTable (จัดการ์ดให้พอดีจอ)
+  lib/                     speech.js (TTS/ไฟล์เสียง/เอฟเฟกต์), assets.js (path + ASSET_V),
+                           letters.js (ชื่อตัวอักษร + ความเร็วสะกด), progress.js, confetti.js
+  sets/                    ข้อมูลแต่ละชุด: <ชุด>.js (คำ คำไทย สี ธีม) + index.js (ทะเบียน)
+  styles/                  base.css (ธีม CSS variables), menu.css, game.css
+  assets/fonts/            Fredoka + Mitr (SIL OFL)
+public/                    ไฟล์ static (ไม่ผ่าน bundler)
+  sets/<ชุด>/cards/        ภาพการ์ด <คำ>.webp + back.webp (1200×1680)
+  sets/<ชุด>/audio/        เสียงเฉลยไทย <คำ>.mp3 (ไม่บังคับ ดู README ในโฟลเดอร์)
+  silence.mp3              ปลดล็อกเสียงบน iPhone
+design/                    ต้นฉบับภาพการ์ด (SVG)
+  common.js, sets/<ชุด>.js, cards.html (พรีวิว: npm run dev แล้วเปิด /design/cards.html?set=<ชุด>), render.js
+tests/smoke.mjs            ทดสอบอัตโนมัติ (Playwright) กับ dist/
 ```
 
 ### เพิ่มชุดคำศัพท์ใหม่
-1. สร้าง `sets/<ชุด>/set.js` (คัดลอกจากชุดอื่น แก้ `id`, `no`, คำศัพท์, สี)
-2. สร้าง `design/sets/<ชุด>.js` วาดฉากของแต่ละคำ แล้วเพิ่ม id ใน `design/cards.html` และ `design/render.js`
-3. `node design/render.js <ชุด>` สร้างภาพการ์ด
-4. เพิ่ม `<script src="sets/<ชุด>/set.js">` ใน `index.html`
-5. `node tests/smoke.js` ตรวจว่าทุกอย่างทำงาน
+1. สร้าง `src/sets/<ชุด>.js` (คัดลอกจากชุดอื่น แก้ `id`, `no`, คำศัพท์, สี) แล้ว import ใน `src/sets/index.js`
+2. สร้าง `design/sets/<ชุด>.js` วาดฉากของแต่ละคำ และเพิ่ม id ใน `IDS` ของ `design/cards.html`
+3. `npm run cards -- <ชุด>` สร้างภาพการ์ดไปที่ `public/sets/<ชุด>/cards/`
+4. `npm test` ตรวจว่าทุกอย่างทำงาน

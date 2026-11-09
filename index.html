@@ -6,92 +6,9 @@
 <meta name="theme-color" content="#a5d8ff">
 <title>Word Cards การ์ดคำศัพท์</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%83%8F%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="fonts/fonts.css?v=6">
-<link rel="stylesheet" href="css/base.css?v=6">
-<link rel="stylesheet" href="css/menu.css?v=6">
-<link rel="stylesheet" href="css/game.css?v=6">
 </head>
 <body>
-<main id="app">
-
-  <!-- ===== home page: choose a vocabulary set ===== -->
-  <section id="menu" class="screen" aria-label="เลือกชุดคำศัพท์">
-    <header>
-      <h1><span class="en">Word Cards</span> <span class="th">การ์ดคำศัพท์ภาษาอังกฤษ</span></h1>
-      <p class="pick">👇 เลือกชุดคำศัพท์</p>
-    </header>
-    <nav id="sets"></nav>
-  </section>
-
-  <!-- ===== game screen ===== -->
-  <section id="game" class="screen" hidden>
-    <header id="top">
-      <div class="left">
-        <button id="home" class="round" aria-label="กลับหน้าเลือกชุด"><span>🏠</span><small>หน้าแรก</small></button>
-        <h1><span class="en" id="setTitle"></span> <span class="th" id="setTh"></span></h1>
-      </div>
-      <div id="score" aria-live="polite"></div>
-      <div class="tools">
-        <button id="lucky" class="round" aria-label="สุ่มให้"><span>🎲</span><small>สุ่มให้</small></button>
-        <button id="shuffle" class="round" aria-label="สับการ์ด"><span>🔀</span><small>สับการ์ด</small></button>
-      </div>
-    </header>
-
-    <p id="hint">👆 จิ้มเลือกการ์ด 1 ใบ</p>
-    <section id="table" aria-label="การ์ด 5 ใบ"></section>
-
-    <!-- detail view -->
-    <div id="detail" hidden>
-      <div class="panel">
-        <div class="cardBig">
-          <img id="bigImg" alt="">
-          <button id="cover" aria-label="แตะเพื่อแปล">🇹🇭 แตะเพื่อแปล</button>
-          <div id="bubble" hidden></div>
-        </div>
-        <div class="side">
-          <div id="letters" aria-label="ตัวอักษร"></div>
-          <div id="thaiWord" hidden></div>
-          <div class="actions">
-            <button id="btnSpell" class="act spell"><span>🔤</span><b>สะกด</b><small>Spell</small></button>
-            <button id="btnSay" class="act say"><span>🔊</span><b>ฟัง</b><small>Listen</small></button>
-            <button id="btnThai" class="act thai"><span>🇹🇭</span><b>แปล</b><small>Thai</small></button>
-          </div>
-          <button id="btnClose" class="act done"><span>✅</span><b>เลือกใบต่อไป</b></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- round complete -->
-    <div id="win" hidden>
-      <div class="winBox">
-        <div class="big">🎉</div>
-        <h2>เก่งมาก!<br><span>Great job!</span></h2>
-        <div id="winCards"></div>
-        <div class="winBtns">
-          <button id="again" class="act done"><span>🔁</span><b>เล่นอีกครั้ง</b></button>
-          <button id="winHome" class="act home"><span>🏠</span><b>เลือกชุดอื่น</b></button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <div id="notice" hidden>🔇 เครื่องนี้ยังไม่มีเสียงภาษาไทย<br><small>บน PC ให้เปิดด้วย <b>Microsoft Edge</b> หรือเพิ่มเสียงภาษาไทยใน Windows<br>(Settings → Time &amp; language → Speech → Add voices → ไทย)</small></div>
-  <canvas id="fx"></canvas>
-</main>
-
-<!-- core -->
-<script src="js/core/sets.js?v=6"></script>
-<!-- vocabulary sets (one folder each) -->
-<script src="sets/weather/set.js?v=6"></script>
-<script src="sets/days/set.js?v=6"></script>
-<script src="sets/things/set.js?v=6"></script>
-<script src="sets/home/set.js?v=6"></script>
-<script src="sets/animals/set.js?v=6"></script>
-<script src="sets/farm/set.js?v=6"></script>
-<!-- components -->
-<script src="js/core/speech.js?v=6"></script>
-<script src="js/core/game.js?v=6"></script>
-<script src="js/core/menu.js?v=6"></script>
-<script src="js/app.js?v=6"></script>
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
