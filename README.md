@@ -32,7 +32,7 @@ npm test           # build แล้วทดสอบอัตโนมัต�
 npm run cards      # วาดภาพการ์ดใหม่ (ทุกชุด) → public/sets/<ชุด>/cards/
 ```
 เว็บจริง deploy ด้วย GitHub Actions (`.github/workflows/pages.yml`) ซึ่งจะ build ก่อนแล้วอัปโหลด `dist/`
-**ควรตั้ง Settings → Pages → Source เป็น “GitHub Actions”** (ถ้ายังเป็น “Deploy from a branch” workflow จะ deploy ซ้ำทับให้อัตโนมัติ)
+**ควรตั้ง Settings → Pages → Source เป็น “GitHub Actions”** (ถ้ายังเป็น “Deploy from a branch” workflow จะรอ 2 นาทีแล้ว deploy ทับให้ เพราะแบบ branch จะ publish ซอร์สที่ยังไม่ build)
 
 เสียงอังกฤษใช้ Web Speech API ของเครื่อง (en‑US) ส่วนเฉลยไทยเล่นจากไฟล์เสียงอัดของชุดนั้น (`public/sets/<ชุด>/audio/<คำ>.mp3`)
 ถ้ายังไม่มีไฟล์ จะใช้เสียงไทยของเครื่อง ถ้าเครื่องไม่มีเสียงไทย (เช่น Chrome บน Windows) จะขึ้นคำแนะนำ
