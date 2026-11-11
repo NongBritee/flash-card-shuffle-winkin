@@ -2,8 +2,8 @@
 // Serves the production build (dist/), fakes the speech engine (so we can read what would be said), and checks:
 //  - home page lists every set and every card image / back loads
 //  - each set's theme is applied, 5 cards are dealt
-//  - sequences: face-down tap = spell → word → Thai, 🔤 = spell → word → Thai, 🔊 / 🇹🇭 = word → Thai,
-//    re-opened card = word → Thai; Thai uses the recording when present, else device voice, else a hint
+//  - sequences: face-down tap = spell → word (Thai stays covered), 🔤 = spell → word, 🔊 = word, re-opened card = word,
+//    🇹🇭 / sticker = word → Thai (recording when present, else device voice, else a hint)
 //  - finishing a round shows the win box, records progress, and 🏠 goes back home
 //  - nothing overflows the screen on phone / tablet / desktop sizes
 import { chromium } from 'playwright';
@@ -135,25 +135,32 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
     let log = await takeLog(p);
     const w = s.words.find(x => log.includes('en:' + x.en));
     const thaiStep = l => l === 'th:' + w.th || l === 'clip:' + w.id + '.mp3';
-    check(!!w && log.length === w.en.length + 2 && thaiStep(log[log.length - 1]) && log[log.length - 2] === 'en:' + w.en,
-      `card tap → spell ${w && w.en.length} letters → "${w && w.en}" → Thai   [${log.join(', ')}]`);
-    if (hasClips) check(log.includes('clip:' + w.id + '.mp3'), 'Thai answer uses the recorded voice');
-    check(!(await p.locator('#thaiWord').isHidden()) && (await p.locator('#thaiWord').textContent()) === w.th, `Thai word shown: ${w.th}`);
+    check(!!w && log.length === w.en.length + 1 && log[log.length - 1] === 'en:' + w.en,
+      `card tap → spell ${w && w.en.length} letters → "${w && w.en}" and stops   [${log.join(', ')}]`);
+    check(await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(), 'Thai label NOT opened automatically (pink sticker still on)');
 
     // 2) buttons
-    for (const [btn, name, spells] of [['#btnSpell', '🔤 spell', true], ['#btnSay', '🔊 listen', false], ['#btnThai', '🇹🇭 thai', false]]) {
+    for (const [btn, name, spells] of [['#btnSpell', '🔤 spell', true], ['#btnSay', '🔊 listen', false]]) {
       await p.click(btn); await waitIdle(p); log = await takeLog(p);
-      const expectLen = (spells ? w.en.length : 0) + 2;
-      check(log.length === expectLen && log[log.length - 2] === 'en:' + w.en && thaiStep(log[log.length - 1]), `${name} → ${spells ? 'spell → ' : ''}word → Thai   [${log.join(', ')}]`);
+      const expectLen = (spells ? w.en.length : 0) + 1;
+      check(log.length === expectLen && log[log.length - 1] === 'en:' + w.en && await p.locator('#thaiWord').isHidden(), `${name} → ${spells ? 'spell → ' : ''}word, Thai still covered   [${log.join(', ')}]`);
     }
+    // the child presses the sticker / 🇹🇭 → word → Thai
+    await p.click('#btnThai'); await waitIdle(p); log = await takeLog(p);
+    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()) && (await p.locator('#thaiWord').textContent()) === w.th,
+      `🇹🇭 → word → Thai label opens (${w.th})   [${log.join(', ')}]`);
+    if (hasClips) check(log.includes('clip:' + w.id + '.mp3'), 'Thai answer uses the recorded voice');
+    // once revealed, the other buttons continue word → Thai
+    await p.click('#btnSay'); await waitIdle(p); log = await takeLog(p);
+    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]), `after the reveal 🔊 → word → Thai   [${log.join(', ')}]`);
     // 3) re-open the same (already revealed) card
     await p.click('#btnClose'); await wait(300); await takeLog(p);
     await p.locator('#table .card.open').first().click();
     await waitIdle(p); log = await takeLog(p);
     check(log.length === 1 && log[0] === 'en:' + w.en && await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(),
       `re-opened card → English word only, Thai stays covered   [${log.join(', ')}]`);
-    await p.click('#btnThai'); await waitIdle(p); log = await takeLog(p);
-    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()), `then 🇹🇭 reveals → word → Thai   [${log.join(', ')}]`);
+    await p.click('#cover'); await waitIdle(p); log = await takeLog(p);
+    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()), `clicking the sticker → word → Thai   [${log.join(', ')}]`);
     if (shotsDir) await p.screenshot({ path: path.join(shotsDir, `${s.id}-detail.png`) });
     await p.click('#btnClose');
     await p.close();
@@ -170,7 +177,11 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   for (let i = 0; i < 5; i++) {
     await p.locator('#table .card:not(.open)').first().click();
     await waitIdle(p);
-    if (i === 0) check(await p.locator('#notice').isVisible(), 'no Thai voice and no recording → hint shown');
+    if (i === 0) {
+      check(await p.locator('#notice').count() === 0 || await p.locator('#notice').isHidden(), 'no hint before the child asks for the Thai answer');
+      await p.click('#btnThai'); await waitIdle(p);
+      check(await p.locator('#notice').isVisible(), 'no Thai voice and no recording → hint shown when the answer is revealed');
+    }
     if (i < 4) check(await p.locator('#finish').count() === 0, `after card ${i + 1}: not finished yet`);
     await p.click('#btnClose'); await wait(250);
   }
@@ -197,7 +208,7 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   // play again resets the covers
   await p.goto(base + '?allow=all#/farm'); await wait(2600);
   await p.locator('#table .card').first().click(); await waitIdle(p);
-  check(!(await p.locator('#thaiWord').isHidden()), 'new round works after finishing');
+  check(await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(), 'new round works after finishing (Thai covered again)');
   await p.close();
 
   /* ---- review after finishing, with a recorded voice ---- */
