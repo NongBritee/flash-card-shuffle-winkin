@@ -11,7 +11,7 @@
    When all 5 cards are answered the table stays on screen (3 stars + buttons).
    Async sequences are cancelled with a "token": every new action bumps it, and running steps stop when it changed. */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { say, stop, unlock, hasThaiVoice, playClip, preloadClips, SFX } from '../lib/speech.js';
+import { say, stop, unlock, onSpeech, hasThaiVoice, playClip, preloadClips, SFX } from '../lib/speech.js';
 import { cardImg, clipUrl, SILENCE } from '../lib/assets.js';
 import { letterName, LETTER_RATE, LETTER_GAP, WORD_RATE } from '../lib/letters.js';
 import confetti from '../lib/confetti.js';
@@ -36,6 +36,7 @@ export default function Game({ set, name, onHome, onWin }) {
   const [thaiKey, setThaiKey] = useState(0);            // bump to replay the pop animation
   const [bubble, setBubble] = useState(null);           // 'say' | 'yay' | null
   const [notice, setNotice] = useState(false);
+  const [muted, setMuted] = useState(false);          // the browser refused to speak (iOS needs a fresh tap)
   const [finished, setFinished] = useState(false);   // all cards answered
 
   const slotsRef = useRef(slots); slotsRef.current = slots;
@@ -52,6 +53,7 @@ export default function Game({ set, name, onHome, onWin }) {
   const img = name => cardImg(set, name);
   const patch = (key, p) => setSlots(ss => ss.map(s => (s.key === key ? { ...s, ...p } : s)));
   const tap = () => unlock(SILENCE);
+  useEffect(() => { onSpeech(() => setMuted(false), () => setMuted(true)); return () => onSpeech(); }, []);
 
   /* ---------- shuffle (FLIP animation) ---------- */
   // after React re-orders the cards, start each one from where it was and slide it to its new place
@@ -285,7 +287,7 @@ export default function Game({ set, name, onHome, onWin }) {
       {detail && (
         <DetailView word={detail} img={img(detail.id)} lit={lit} cover={cover} thaiShown={thaiShown} thaiKey={thaiKey} bubble={bubble}
           onLetter={i => { tap(); letter(i); }} onSpell={() => { tap(); spell(); }} onSay={() => { tap(); sayWord(); }}
-          onThai={() => { tap(); revealWord(); }} onClose={closeDetail} />
+          onThai={() => { tap(); revealWord(); }} onClose={closeDetail} muted={muted} />
       )}
       {finished && !detail && <FinishBar name={name} onAgain={again} onHome={onHome} />}
 

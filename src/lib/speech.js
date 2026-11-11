@@ -21,6 +21,16 @@ function pickVoice(lang) {
 }
 
 const keep = []; // keep utterances referenced (Chrome GC bug)
+
+// iOS Safari only lets speechSynthesis start from a user gesture. A sequence that begins later (e.g. after the card flips)
+// is silently dropped, so every tap "primes" the engine with a silent utterance, and a sequence that never starts is reported.
+const listeners = { spoke: () => {}, blocked: () => {} };
+const onSpeech = (spoke, blocked) => { listeners.spoke = spoke || (() => {}); listeners.blocked = blocked || (() => {}); };
+function prime() {
+  if (!synth || synth.speaking || synth.pending) return;      // already active: nothing to wake up
+  try { const u = new SpeechSynthesisUtterance('.'); u.volume = 0; u.lang = 'en-US'; synth.speak(u); } catch (e) { /* ignore */ }
+}
+
 function say(text, lang = 'en-US', rate = 0.8) {
   return new Promise(resolve => {
     const est = 700 + text.length * (lang.startsWith('th') ? 160 : 230) / rate;
@@ -31,9 +41,12 @@ function say(text, lang = 'en-US', rate = 0.8) {
     if (v) { try { u.voice = v; } catch (e) { /* keep default voice */ } }
     u.rate = rate;
     u.pitch = 1.1;
-    let done = false;
-    const fin = () => { if (done) return; done = true; clearTimeout(t); keep.splice(keep.indexOf(u), 1); resolve(); };
+    let done = false, started = false;
+    const fin = () => { if (done) return; done = true; clearTimeout(t); clearTimeout(nostart); keep.splice(keep.indexOf(u), 1); resolve(); };
     const t = setTimeout(fin, est + 2500);
+    // no "start" within 1.5 s = the browser silently refused to speak (iOS without a fresh tap)
+    const nostart = setTimeout(() => { if (!started && !done) listeners.blocked(); }, 1500);
+    u.onstart = () => { started = true; listeners.spoke(); };
     u.onend = fin; u.onerror = fin;
     keep.push(u);
     synth.speak(u);
@@ -42,11 +55,9 @@ function say(text, lang = 'en-US', rate = 0.8) {
 }
 function stop() { if (synth) synth.cancel(); try { clip.pause(); } catch (e) {} }
 // iOS / Safari: speech must first be started from a user gesture
-let unlocked = false;
 function unlock(clipUrl) {
   unlockClip(clipUrl);
-  if (unlocked) return; unlocked = true;
-  if (synth) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }
+  prime();
   ctx();
 }
 const hasThaiVoice = () => !!pickVoice('th-TH');
@@ -125,4 +136,4 @@ const SFX = {
   peel() { whoosh(0, .22, .18); tone(400, .18, 'sine', .12, .05, 2); },
 };
 
-export { say, stop, unlock, hasThaiVoice, playClip, preloadClips, SFX };
+export { say, stop, unlock, onSpeech, hasThaiVoice, playClip, preloadClips, SFX };
