@@ -40,11 +40,17 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const withName = () => { try { localStorage.setItem('fc.name', 'น้องทดสอบ'); } catch (e) {} };
 
 // fake speech: log every utterance / clip; `thai` decides whether a Thai voice exists
-const fakeSpeech = thai => {
-  window.__log = [];
+const fakeSpeech = arg => {                                       // arg: true/false (Thai voice?) or { thai, blocked }
+  const thai = typeof arg === 'object' ? arg.thai : arg, blocked = typeof arg === 'object' && !!arg.blocked;
+  window.__log = []; window.__primed = 0;
   const vs = [{ name: 'Samantha', lang: 'en-US' }].concat(thai ? [{ name: 'Kanya', lang: 'th-TH' }] : []);
   speechSynthesis.getVoices = () => vs;
-  speechSynthesis.speak = u => { if (u.text.trim()) window.__log.push((u.lang.startsWith('th') ? 'th:' : 'en:') + u.text); setTimeout(() => u.onend && u.onend(), 40); };
+  speechSynthesis.speak = u => {
+    if (u.volume === 0) { window.__primed++; return; }            // the silent "wake-up" utterance sent on every tap
+    if (blocked) return;                                           // iOS without a fresh tap: nothing starts, nothing ends
+    if (u.text.trim()) window.__log.push((u.lang.startsWith('th') ? 'th:' : 'en:') + u.text);
+    setTimeout(() => { u.onstart && u.onstart(); setTimeout(() => u.onend && u.onend(), 40); }, 10);
+  };
   speechSynthesis.cancel = () => {};
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () { if (!this.muted) window.__log.push('clip:' + this.src.split('/').slice(-1)[0].split('?')[0]); return play.call(this); };
@@ -210,6 +216,35 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   await p.goto(base + '?allow=all#/farm'); await wait(2600);
   await p.locator('#table .card').first().click(); await waitIdle(p);
   check(await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(), 'new round works after finishing (Thai covered again)');
+  await p.close();
+
+  /* ---- iOS-style speech: wake-up on every tap, hint when the browser refuses to speak ---- */
+  console.log('iOS-style speech');
+  p = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  p.on('pageerror', e => errors.push(e.message));
+  await p.addInitScript(withName);
+  await p.addInitScript(fakeSpeech, true);
+  await p.goto(base + '#/weather');
+  await wait(2600);
+  const before = await p.evaluate(() => window.__primed);
+  await p.locator('#table .card').first().click();
+  check(await p.evaluate(b => window.__primed > b, before), 'every tap wakes the speech engine with a silent utterance');
+  await waitIdle(p);
+  check(await p.locator('#soundHint').count() === 0, 'speech works → no "can\'t hear?" hint');
+  // sticker text is centred inside the pink pill (phone size)
+  const off = await p.evaluate(() => { const c = document.querySelector('#cover'), r = c.getBoundingClientRect(); const rg = document.createRange(); rg.selectNodeContents(c); const t = rg.getBoundingClientRect(); return Math.abs((t.top + t.bottom) / 2 - (r.top + r.bottom) / 2); });
+  check(off <= 3, `sticker text vertically centred on a phone (off by ${off.toFixed(1)}px)`);
+  if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'phone-detail.png') });
+  await p.close();
+  p = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  p.on('pageerror', e => errors.push(e.message));
+  await p.addInitScript(withName);
+  await p.addInitScript(fakeSpeech, { thai: true, blocked: true });
+  await p.goto(base + '#/weather');
+  await wait(2600);
+  await p.locator('#table .card').first().click();
+  await p.waitForSelector('#soundHint', { timeout: 8000 });
+  check(true, 'speech refused by the browser → hint to press 🔤 สะกด is shown');
   await p.close();
 
   /* ---- review after finishing, with a recorded voice ---- */

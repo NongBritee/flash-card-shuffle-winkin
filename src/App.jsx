@@ -39,12 +39,12 @@ export default function App() {
     document.title = set ? `${set.title} · ${set.th} — Word Cards` : 'Word Cards การ์ดคำศัพท์';
   }, [set]);
 
-  // iOS / Safari only allow sound after a tap: unlock audio on the first touch anywhere
+  // iOS / Safari only allow sound that starts from a tap: wake the audio engine on EVERY touch (capture phase, before the click handlers)
   useEffect(() => {
     const on = () => unlock(SILENCE);
-    document.addEventListener('pointerdown', on, { once: true });
-    document.addEventListener('touchend', on, { once: true });
-    return () => { document.removeEventListener('pointerdown', on); document.removeEventListener('touchend', on); };
+    document.addEventListener('pointerdown', on, true);
+    document.addEventListener('touchend', on, true);
+    return () => { document.removeEventListener('pointerdown', on, true); document.removeEventListener('touchend', on, true); };
   }, []);
 
   return (

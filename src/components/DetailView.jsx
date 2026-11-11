@@ -1,5 +1,5 @@
 // Big card + letter tiles + buttons (spell / listen / Thai / next)
-export default function DetailView({ word, img, lit, cover, thaiShown, thaiKey, bubble, onLetter, onSpell, onSay, onThai, onClose }) {
+export default function DetailView({ word, img, lit, cover, thaiShown, thaiKey, bubble, onLetter, onSpell, onSay, onThai, onClose, muted }) {
   const style = { '--ink': word.ink, '--bg': word.bg, '--n': word.en.length };
   return (
     <div id="detail" className="show" style={style} onClick={e => { if (e.target.id === 'detail') onClose(); }}>
@@ -15,6 +15,7 @@ export default function DetailView({ word, img, lit, cover, thaiShown, thaiKey, 
           </div>
         </div>
         <div className="side">
+          {muted && <p id="soundHint" role="status">🔇 ไม่ได้ยินเสียงใช่ไหม? แตะปุ่ม <b>🔤 สะกด</b> เพื่อฟัง</p>}
           <div id="letters" aria-label="ตัวอักษร">
             {[...word.en].map((ch, i) => (
               <button key={i} className={'tile' + (lit === 'all' || lit === i ? ' on' : '')}
