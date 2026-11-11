@@ -61,6 +61,10 @@ npm run cards      # วาดภาพการ์ดใหม่ (ทุกช
 เสียงอังกฤษใช้ Web Speech API ของเครื่อง (en‑US) ส่วนเฉลยไทยเล่นจากไฟล์เสียงอัดของชุดนั้น (`public/sets/<ชุด>/audio/<คำ>.mp3`)
 ถ้ายังไม่มีไฟล์ จะใช้เสียงไทยของเครื่อง ถ้าเครื่องไม่มีเสียงไทย (เช่น Chrome บน Windows) จะขึ้นคำแนะนำ
 
+### รูปพรีวิวเวลาแชร์ลิงก์ (Facebook / LINE)
+รูปอยู่ที่ `public/og-image.jpg` และ meta tag (`og:*`, `twitter:*`) อยู่ใน `index.html` ใช้ URL เต็มของโดเมน
+ถ้าย้ายโดเมน ให้แก้ URL ใน `index.html` (ค้นหา `vercel.app`) แชร์แล้วยังเห็นรูปเก่า: Facebook ล้างแคชที่ developers.facebook.com/tools/debug (กด Scrape Again) ส่วน LINE แคชประมาณหลายชั่วโมง ลองใส่ `?v=2` ต่อท้ายลิงก์
+
 ### Deploy บน Vercel
 1. เข้า vercel.com → **Add New… → Project** → เลือก repo นี้ (Vercel ตรวจเจอว่าเป็น Vite และใช้ค่าใน `vercel.json` ให้เอง: build `npm run build`, output `dist`)
 2. กด **Deploy** เสร็จแล้วจะได้ลิงก์ `https://<ชื่อ>.vercel.app` (ผูกโดเมนของตัวเองได้ที่ Settings → Domains)
