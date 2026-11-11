@@ -159,8 +159,9 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
     await waitIdle(p); log = await takeLog(p);
     check(log.length === 1 && log[0] === 'en:' + w.en && await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(),
       `re-opened card → English word only, Thai stays covered   [${log.join(', ')}]`);
-    await p.click('#cover'); await waitIdle(p); log = await takeLog(p);
-    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()), `clicking the sticker → word → Thai   [${log.join(', ')}]`);
+    await p.locator('.cardBig').click({ position: { x: 25, y: 25 } });     // top-left corner of the card, nowhere near the sticker
+    await waitIdle(p); log = await takeLog(p);
+    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()), `tapping anywhere on the card → word → Thai   [${log.join(', ')}]`);
     if (shotsDir) await p.screenshot({ path: path.join(shotsDir, `${s.id}-detail.png`) });
     await p.click('#btnClose');
     await p.close();

@@ -6,7 +6,9 @@ export default function DetailView({ word, img, lit, cover, thaiShown, thaiKey, 
       <div className="panel">
         <div className="cardBig">
           <img id="bigImg" src={img} alt={`${word.en} — ${word.th}`} />
-          <button id="cover" className={cover === 'peel' ? 'peel' : ''} hidden={cover === 'off'} aria-label="แตะเพื่อแปล" onClick={onThai}>🇹🇭 แตะเพื่อแปล</button>
+          {/* the whole card is one big button: tap anywhere to reveal / hear the Thai; the pink sticker is just the visual hint */}
+          <button id="cardHit" className="cardHit" aria-label="แตะที่การ์ดเพื่อแปลเป็นภาษาไทย" onClick={onThai} />
+          <div id="cover" className={cover === 'peel' ? 'peel' : ''} hidden={cover === 'off'} aria-hidden="true">🇹🇭 แตะเพื่อแปล</div>
           <div id="bubble" className={bubble || ''} hidden={!bubble}>
             {bubble === 'say' && <>🎤 พูดตามนะ<br /><b>{word.en}</b></>}
             {bubble === 'yay' && <>⭐ เก่งมาก!</>}
