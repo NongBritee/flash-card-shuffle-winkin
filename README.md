@@ -60,6 +60,12 @@ npm run cards      # วาดภาพการ์ดใหม่ (ทุกช
 เสียงอังกฤษใช้ Web Speech API ของเครื่อง (en‑US) ส่วนเฉลยไทยเล่นจากไฟล์เสียงอัดของชุดนั้น (`public/sets/<ชุด>/audio/<คำ>.mp3`)
 ถ้ายังไม่มีไฟล์ จะใช้เสียงไทยของเครื่อง ถ้าเครื่องไม่มีเสียงไทย (เช่น Chrome บน Windows) จะขึ้นคำแนะนำ
 
+### Deploy บน Vercel
+1. เข้า vercel.com → **Add New… → Project** → เลือก repo นี้ (Vercel ตรวจเจอว่าเป็น Vite และใช้ค่าใน `vercel.json` ให้เอง: build `npm run build`, output `dist`)
+2. กด **Deploy** เสร็จแล้วจะได้ลิงก์ `https://<ชื่อ>.vercel.app` (ผูกโดเมนของตัวเองได้ที่ Settings → Domains)
+3. หลังจากนี้ทุกครั้งที่ merge เข้า `main` Vercel จะ build และ deploy ให้อัตโนมัติ และ PR แต่ละอันจะได้ลิงก์ preview แยก
+เว็บใช้ hash routing (`#/`) และ `base: './'` จึงไม่ต้องตั้ง rewrite เพิ่ม และใช้ `?allow=all` ได้เหมือนเดิม
+
 ## โครงสร้างโปรเจกต์
 ```
 index.html                 จุดเริ่มของ Vite
