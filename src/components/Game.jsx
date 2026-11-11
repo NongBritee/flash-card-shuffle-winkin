@@ -1,11 +1,14 @@
 /* Card game for one vocabulary set.
+   The Thai answer is never revealed automatically: the pink sticker stays on until the child presses it (or 🇹🇭).
    Sequences:
-     tap a face-down card → flip → spell → English word → Thai
-     🔤 spell             → spell → English word → Thai
-     🔊 listen / 🇹🇭 Thai  → English word → Thai
-     tap an opened card   → English word only (Thai stays covered until 🇹🇭 / 🔊 / the sticker is pressed)
-   When all 5 cards are answered the table stays on screen (3 stars + buttons). Cards can then be reviewed one by one
-   with the Thai answer already revealed (English → Thai).
+     tap a face-down card → flip → spell → English word            (Thai stays covered)
+     🔤 spell             → spell → English word
+     🔊 listen            → English word
+     tap an opened card   → English word
+     🇹🇭 Thai / sticker    → English word → reveal the Thai label + say it
+   Once the Thai label has been revealed (or after all 5 cards are answered, when reviewing) every sequence continues
+   English word → Thai, since the answer is already visible.
+   When all 5 cards are answered the table stays on screen (3 stars + buttons).
    Async sequences are cancelled with a "token": every new action bumps it, and running steps stop when it changed. */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { say, stop, unlock, hasThaiVoice, playClip, preloadClips, SFX } from '../lib/speech.js';
@@ -160,7 +163,7 @@ export default function Game({ set, name, onHome, onWin }) {
     setDetail(w); setCover(review ? 'off' : 'on'); coverRef.current = review ? 'off' : 'on';
     setThaiShown(review); setThaiKey(0); setBubble(null); setLit(-1);
     const t = ++token.current;
-    setTimeout(() => { if (t === token.current) (fromBack ? spell : review ? sayWord : previewWord)(); }, 550);
+    setTimeout(() => { if (t === token.current) (fromBack ? spell : sayWord)(); }, 550);
   }
 
   function closeDetail() {
@@ -196,17 +199,20 @@ export default function Game({ set, name, onHome, onWin }) {
     if (t === token.current) setBubble(null);
   }
 
-  // shared tail of every sequence: English word → Thai → "repeat after me"
-  async function wordThenThai(t, w) {
+  // shared tail of every sequence: English word → (Thai, only if asked for or already revealed) → "repeat after me"
+  async function wordThenThai(t, w, forceReveal = false) {
     setLit('all');
     await say(w.en, 'en-US', WORD_RATE);
     if (t !== token.current) return;
     setLit(-1);
-    await wait(450);
+    const reveal = forceReveal || coverRef.current !== 'on';
+    await wait(reveal ? 450 : 300);
     if (t !== token.current) return;
-    await revealThai(t, w);
-    if (t !== token.current) return;
-    await wait(400);
+    if (reveal) {
+      await revealThai(t, w);
+      if (t !== token.current) return;
+      await wait(400);
+    }
     repeatAfterMe(t);
   }
 
@@ -225,18 +231,8 @@ export default function Game({ set, name, onHome, onWin }) {
     await wordThenThai(t, w);
   }
 
-  // re-opened card: just say the English word; the Thai answer waits for the child to press reveal
-  async function previewWord() {
-    const t = begin(), w = current.current;
-    setLit('all');
-    await say(w.en, 'en-US', WORD_RATE);
-    if (t !== token.current) return;
-    setLit(-1);
-    await wait(300);
-    if (t === token.current) repeatAfterMe(t);
-  }
-
   async function sayWord() { const t = begin(); await wordThenThai(t, current.current); }
+  async function revealWord() { const t = begin(); await wordThenThai(t, current.current, true); }
 
   async function letter(i) {
     const t = begin(), w = current.current;
@@ -289,7 +285,7 @@ export default function Game({ set, name, onHome, onWin }) {
       {detail && (
         <DetailView word={detail} img={img(detail.id)} lit={lit} cover={cover} thaiShown={thaiShown} thaiKey={thaiKey} bubble={bubble}
           onLetter={i => { tap(); letter(i); }} onSpell={() => { tap(); spell(); }} onSay={() => { tap(); sayWord(); }}
-          onThai={() => { tap(); sayWord(); }} onClose={closeDetail} />
+          onThai={() => { tap(); revealWord(); }} onClose={closeDetail} />
       )}
       {finished && !detail && <FinishBar name={name} onAgain={again} onHome={onHome} />}
 
