@@ -36,6 +36,9 @@ let failures = 0;
 const check = (ok, msg) => { console.log((ok ? '  ✓ ' : '  ✗ ') + msg); if (!ok) failures++; };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
+// the child's name is asked first; most tests start with one already saved
+const withName = () => { try { localStorage.setItem('fc.name', 'น้องทดสอบ'); } catch (e) {} };
+
 // fake speech: log every utterance / clip; `thai` decides whether a Thai voice exists
 const fakeSpeech = thai => {
   window.__log = [];
@@ -58,20 +61,58 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   const base = `http://localhost:${server.address().port}/`;
   const browser = await chromium.launch();
 
-  /* ---- home page + assets ---- */
-  console.log('home page');
+  /* ---- name screen: asked before starting, min 2 characters, remembered ---- */
+  console.log('name screen');
   let p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.addInitScript(fakeSpeech, false);
   await p.goto(base);
+  check(await p.locator('#gate').isVisible() && !(await p.locator('#menu').count()), 'first visit shows the name screen before the sets');
+  if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'name.png') });
+  await p.fill('#childName', 'ก'); await p.click('.gateBtns .done');
+  check(await p.locator('#gate').isVisible() && /อย่างน้อย 2/.test(await p.locator('#nameHint').textContent()) && await p.evaluate(() => !localStorage.getItem('fc.name')),
+    '1 character is rejected and not saved');
+  await p.fill('#childName', '  '); await p.click('.gateBtns .done');
+  check(await p.locator('#gate').isVisible(), 'blank / spaces only are rejected');
+  await p.fill('#childName', 'น้องบี'); await p.press('#childName', 'Enter');
+  await p.waitForSelector('#menu');
+  check(await p.evaluate(() => localStorage.getItem('fc.name')) === 'น้องบี', 'valid name saved in localStorage');
+  check((await p.locator('#greet').textContent()).includes('น้องบี'), 'home page greets the child by name');
+  await p.reload();
+  await p.waitForSelector('#menu');
+  check(await p.locator('#gate').count() === 0 && (await p.locator('#greet').textContent()).includes('น้องบี'), 'name remembered after reload (no name screen)');
+  await p.click('#changeName');
+  check(await p.locator('#gate').isVisible() && await p.inputValue('#childName') === 'น้องบี', '✏️ opens the name screen with the saved name');
+  await p.fill('#childName', 'Mia'); await p.press('#childName', 'Enter');
+  await p.waitForSelector('#menu');
+  check((await p.locator('#greet').textContent()).includes('Mia'), 'name can be changed');
+
+  /* ---- locked sets: only the first 2 are playable, ?allow=all opens everything ---- */
+  console.log('locked sets');
+  const tiles = await p.locator('.setTile').count();
+  check(tiles === SETS.length, `${SETS.length} set tiles shown`);
+  check(await p.locator('.setTile.locked').count() === SETS.length - 2 && await p.locator('a.setTile').count() === 2, 'sets 1-2 playable, the other sets are shown but locked');
+  if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'home.png') });
+  await wait(900);                                             // tiles pop in
+  await p.locator('.setTile.locked').first().click({ force: true });   // aria-disabled (still tappable on purpose: it explains why)
+  check(await p.locator('#popup').isVisible() && (await p.locator('#popup').textContent()).includes('ยังไม่เปิดใช้งาน') && !/#\/\w/.test(await p.evaluate(() => location.hash)),
+    'clicking a locked set shows "ยังไม่เปิดใช้งาน" and does not open it');
+  if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'locked-popup.png') });
+  await p.click('#popup .done');
+  check(await p.locator('#popup').count() === 0, 'popup closes');
+  await p.goto(base + '#/farm'); await p.waitForSelector('#popup');
+  check(await p.locator('#menu').isVisible() && await p.locator('#table').count() === 0, 'opening a locked set by URL goes back home with the popup');
+  await p.goto(base + '?allow=all'); await p.waitForSelector('#menu');
+  check(await p.locator('.setTile.locked').count() === 0 && await p.locator('a.setTile').count() === SETS.length, '?allow=all unlocks every set');
+
+  /* ---- assets ---- */
+  console.log('card images');
   const sets = SETS.map(s => ({ id: s.id, title: s.title, theme: s.theme, words: s.words, img: s.words.map(w => w.id).concat('back').map(n => `sets/${s.id}/cards/${n}.webp`) }));
-  check(await p.locator('.setTile').count() === sets.length, `${sets.length} set tiles on the home page`);
   for (const s of sets) {
     const bad = [];
     for (const u of s.img) { const r = await p.request.get(base + u); if (!r.ok()) bad.push(u); }
     check(!bad.length, `${s.id}: all ${s.img.length} card images load ${bad.join(' ')}`);
   }
-  if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'home.png') });
   await p.close();
 
   /* ---- each set: sequences ---- */
@@ -80,8 +121,9 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
     const hasClips = s.words.some(w => fs.existsSync(path.join(ROOT, 'sets', s.id, 'audio', w.id + '.mp3')));
     p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     p.on('pageerror', e => errors.push(`${s.id}: ${e.message}`));
+    await p.addInitScript(withName);
     await p.addInitScript(fakeSpeech, true);
-    await p.goto(base + '#/' + s.id);
+    await p.goto(base + '?allow=all#/' + s.id);
     await p.waitForFunction(() => document.querySelectorAll('#table .card').length === 5);
     check(await p.evaluate(sky => getComputedStyle(document.documentElement).getPropertyValue('--sky1').trim() === sky, s.theme.sky1), 'theme colours applied');
     await wait(2600);                                            // deal + shuffle (taps are ignored meanwhile)
@@ -108,32 +150,72 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
     await p.click('#btnClose'); await wait(300); await takeLog(p);
     await p.locator('#table .card.open').first().click();
     await waitIdle(p); log = await takeLog(p);
-    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]), `re-opened card → word → Thai   [${log.join(', ')}]`);
+    check(log.length === 1 && log[0] === 'en:' + w.en && await p.locator('#thaiWord').isHidden() && await p.locator('#cover').isVisible(),
+      `re-opened card → English word only, Thai stays covered   [${log.join(', ')}]`);
+    await p.click('#btnThai'); await waitIdle(p); log = await takeLog(p);
+    check(log.length === 2 && log[0] === 'en:' + w.en && thaiStep(log[1]) && !(await p.locator('#thaiWord').isHidden()), `then 🇹🇭 reveals → word → Thai   [${log.join(', ')}]`);
     if (shotsDir) await p.screenshot({ path: path.join(shotsDir, `${s.id}-detail.png`) });
     await p.click('#btnClose');
     await p.close();
   }
 
-  /* ---- full round, win, progress, home; no-Thai-voice fallback ---- */
+  /* ---- full round: table stays, 3 stars, review with the answer revealed; no-Thai-voice fallback ---- */
   console.log('full round (device without a Thai voice)');
   p = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   p.on('pageerror', e => errors.push(e.message));
+  await p.addInitScript(withName);
   await p.addInitScript(fakeSpeech, false);
-  await p.goto(base + '#/farm');
+  await p.goto(base + '?allow=all#/farm');
   await wait(2600);
   for (let i = 0; i < 5; i++) {
     await p.locator('#table .card:not(.open)').first().click();
     await waitIdle(p);
     if (i === 0) check(await p.locator('#notice').isVisible(), 'no Thai voice and no recording → hint shown');
+    if (i < 4) check(await p.locator('#finish').count() === 0, `after card ${i + 1}: not finished yet`);
     await p.click('#btnClose'); await wait(250);
   }
-  await p.waitForSelector('#win:not([hidden])', { timeout: 3000 });
-  check(true, 'win box after 5 cards');
-  check(await p.evaluate(() => JSON.parse(localStorage.getItem('fc.wins') || '{}').farm === 1), 'progress saved');
+  await p.waitForSelector('#finish', { timeout: 3000 });
+  const cardsAfter = await p.evaluate(() => [...document.querySelectorAll('#table .card')].map(c => { const r = c.getBoundingClientRect(); return r.width > 40 && r.bottom <= innerHeight + 1; }));
+  check(await p.locator('#detail').count() === 0 && await p.locator('#popup').count() === 0 && cardsAfter.length === 5 && cardsAfter.every(Boolean),
+    'after the 5th card the 5 cards stay on screen (no blocking popup)');
+  check((await p.locator('#finish').textContent()).includes('น้องทดสอบ') && (await p.locator('#finish .winStars').textContent()) === '⭐⭐⭐', 'finish bar: praise with the name + 3 stars');
+  check(await p.locator('#finish #winHome').isVisible() && await p.locator('#finish #again').isVisible(), 'buttons to choose another set / play again');
+  check(await p.evaluate(() => JSON.parse(localStorage.getItem('fc.wins') || '{}').farm === 3), '3 stars saved');
   if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'win.png') });
+  // review one card: the answer is already revealed (no need to press anything)
+  await takeLog(p);
+  await p.locator('#table .card').nth(1).click();
+  await waitIdle(p);
+  const log = await takeLog(p);
+  check(log.length === 1 && log[0].startsWith('en:') && !(await p.locator('#thaiWord').isHidden()) && await p.locator('#cover').isHidden(),
+    `review after finishing → English word, Thai answer already shown (no cover)   [${log.join(', ')}]`);
+  await p.click('#btnClose'); await wait(500);
+  check(await p.locator('#finish').isVisible() && await p.evaluate(() => JSON.parse(localStorage.getItem('fc.wins')).farm === 3), 'closing a review keeps the finish bar, stars stay at 3');
   await p.click('#winHome');
-  await p.waitForSelector('#menu:not([hidden])');
-  check(await p.locator('.setTile[href="#/farm"] .stars i.on').count() === 1, 'home page shows 1 star for farm');
+  await p.waitForSelector('#menu');
+  check(await p.locator('.setTile[href="#/farm"] .stars i.on').count() === 3, 'home page shows 3 stars for farm');
+  // play again resets the covers
+  await p.goto(base + '?allow=all#/farm'); await wait(2600);
+  await p.locator('#table .card').first().click(); await waitIdle(p);
+  check(!(await p.locator('#thaiWord').isHidden()), 'new round works after finishing');
+  await p.close();
+
+  /* ---- review after finishing, with a recorded voice ---- */
+  console.log('review with the recorded voice (weather)');
+  p = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  p.on('pageerror', e => errors.push(e.message));
+  await p.addInitScript(withName);
+  await p.addInitScript(fakeSpeech, true);
+  await p.goto(base + '#/weather');                     // no ?allow needed: set 1 is always open
+  await wait(2600);
+  for (let i = 0; i < 5; i++) { await p.locator('#table .card:not(.open)').first().click(); await waitIdle(p); await p.click('#btnClose'); await wait(250); }
+  await p.waitForSelector('#finish');
+  await wait(1500);                                     // let the "Great job! / เก่งมาก" praise finish
+  await takeLog(p);
+  await p.locator('#table .card').first().click();
+  await p.waitForFunction(() => window.__log.length >= 2 && !document.querySelector('#bubble').hidden, null, { timeout: 15000 });
+  const rv = await takeLog(p);
+  check(rv.length === 2 && rv[0].startsWith('en:') && /^clip:\w+\.mp3$/.test(rv[1]) && await p.locator('#cover').isHidden(), `review → English then the recorded Thai, answer already shown   [${rv.join(', ')}]`);
   await p.close();
 
   /* ---- layout at many sizes (home, table, detail with the longest word) ---- */
@@ -141,12 +223,12 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   const sizes = [[1920, 1080], [1366, 768], [1024, 1366], [820, 1180], [768, 1024], [844, 390], [390, 844], [375, 667]];
   for (const [width, height] of sizes) {
     p = await browser.newPage({ viewport: { width, height } });
+    await p.addInitScript(withName);
     await p.addInitScript(fakeSpeech, true);
-    await p.goto(base);
-    await wait(500);
-    await wait(700);   // tiles pop in
+    await p.goto(base + '?allow=all');
+    await wait(1200);   // tiles pop in
     const homeOk = await p.evaluate(() => [...document.querySelectorAll('#menu *')].every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1; }));
-    await p.goto(base + '#/days'); await wait(2600);
+    await p.goto(base + '?allow=all#/days'); await wait(2600);
     const tableOk = await p.evaluate(() => [...document.querySelectorAll('#table .card')].every(c => { const b = c.getBoundingClientRect(); return b.bottom <= innerHeight + 1 && b.right <= innerWidth + 1 && b.left >= -1; }));
     // open "Thursday" (longest word) directly
     await p.evaluate(() => { document.querySelector('#table .card').click(); });

@@ -3,7 +3,9 @@
      tap a face-down card → flip → spell → English word → Thai
      🔤 spell             → spell → English word → Thai
      🔊 listen / 🇹🇭 Thai  → English word → Thai
-     tap an opened card   → English word → Thai
+     tap an opened card   → English word only (Thai stays covered until 🇹🇭 / 🔊 / the sticker is pressed)
+   When all 5 cards are answered the table stays on screen (3 stars + buttons). Cards can then be reviewed one by one
+   with the Thai answer already revealed (English → Thai).
    Async sequences are cancelled with a "token": every new action bumps it, and running steps stop when it changed. */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { say, stop, unlock, hasThaiVoice, playClip, preloadClips, SFX } from '../lib/speech.js';
@@ -13,13 +15,13 @@ import confetti from '../lib/confetti.js';
 import useFitTable from '../hooks/useFitTable.js';
 import Card from './Card.jsx';
 import DetailView from './DetailView.jsx';
-import WinBox from './WinBox.jsx';
+import FinishBar from './FinishBar.jsx';
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const rand = n => Math.floor(Math.random() * n);
 let noticeShown = false;                     // the "no Thai voice" hint shows once per visit
 
-export default function Game({ set, onHome, onWin }) {
+export default function Game({ set, name, onHome, onWin }) {
   const WORDS = set.words;
   const [slots, setSlots] = useState(() => WORDS.map((_, key) => ({ key, word: null, open: false, done: false, glow: false })));
   const [order, setOrder] = useState(() => WORDS.map((_, i) => i));
@@ -31,10 +33,11 @@ export default function Game({ set, onHome, onWin }) {
   const [thaiKey, setThaiKey] = useState(0);            // bump to replay the pop animation
   const [bubble, setBubble] = useState(null);           // 'say' | 'yay' | null
   const [notice, setNotice] = useState(false);
-  const [win, setWin] = useState(false);
+  const [finished, setFinished] = useState(false);   // all cards answered
 
   const slotsRef = useRef(slots); slotsRef.current = slots;
   const coverRef = useRef(cover); coverRef.current = cover;
+  const finishedRef = useRef(false); finishedRef.current = finished;
   const current = useRef(null);
   const busy = useRef(false);
   const token = useRef(0);
@@ -91,6 +94,7 @@ export default function Game({ set, onHome, onWin }) {
     const t = ++token.current;
     busy.current = true;
     const anyOpen = slotsRef.current.some(s => s.word);
+    setFinished(false); finishedRef.current = false;
     setSlots(ss => ss.map(s => ({ ...s, open: false, done: false, glow: false })));
     if (anyOpen) { SFX.flip(); await wait(550); }
     setSlots(ss => ss.map(s => ({ ...s, word: null })));
@@ -152,16 +156,18 @@ export default function Game({ set, onHome, onWin }) {
   /* ---------- detail view + sequences ---------- */
   function openDetail(w, fromBack) {
     current.current = w;
-    setDetail(w); setCover('on'); setThaiShown(false); setThaiKey(0); setBubble(null); setLit(-1);
+    const review = !fromBack && finishedRef.current;   // after finishing, the answer stays revealed
+    setDetail(w); setCover(review ? 'off' : 'on'); coverRef.current = review ? 'off' : 'on';
+    setThaiShown(review); setThaiKey(0); setBubble(null); setLit(-1);
     const t = ++token.current;
-    setTimeout(() => { if (t === token.current) (fromBack ? spell : sayWord)(); }, 550);
+    setTimeout(() => { if (t === token.current) (fromBack ? spell : review ? sayWord : previewWord)(); }, 550);
   }
 
   function closeDetail() {
     token.current++; stop();
     setDetail(null); setBubble(null); setLit(-1);
     current.current = null;
-    if (slotsRef.current.every(s => s.word)) setTimeout(showWin, 300);
+    if (!finishedRef.current && slotsRef.current.every(s => s.word)) setTimeout(showWin, 300);
   }
 
   const begin = () => { const t = ++token.current; stop(); setBubble(null); return t; };
@@ -219,6 +225,17 @@ export default function Game({ set, onHome, onWin }) {
     await wordThenThai(t, w);
   }
 
+  // re-opened card: just say the English word; the Thai answer waits for the child to press reveal
+  async function previewWord() {
+    const t = begin(), w = current.current;
+    setLit('all');
+    await say(w.en, 'en-US', WORD_RATE);
+    if (t !== token.current) return;
+    setLit(-1);
+    await wait(300);
+    if (t === token.current) repeatAfterMe(t);
+  }
+
   async function sayWord() { const t = begin(); await wordThenThai(t, current.current); }
 
   async function letter(i) {
@@ -230,16 +247,16 @@ export default function Game({ set, onHome, onWin }) {
 
   /* ---------- win ---------- */
   function showWin() {
-    setWin(true);
+    setFinished(true); finishedRef.current = true;
     SFX.tada(); confetti(fxRef.current);
     onWin && onWin();
     const t = ++token.current;
     say('Great job!', 'en-US', 0.85).then(() => t === token.current && hasThaiVoice() && say('เก่งมาก', 'th-TH', 0.95));
   }
-  function again() { tap(); setWin(false); stop(); newRound(false); }
+  function again() { tap(); stop(); newRound(false); }
 
   const opened = slots.filter(s => s.word).length;
-  const hint = opened === 0 ? '👆 จิ้มเลือกการ์ด 1 ใบ' : opened < WORDS.length ? '👆 เลือกใบต่อไปเลย!' : '🎉 ครบทุกใบแล้ว';
+  const hint = opened === 0 ? '👆 จิ้มเลือกการ์ด 1 ใบ' : opened < WORDS.length ? '👆 เลือกใบต่อไปเลย!' : finished ? '👆 แตะการ์ดเพื่อดูซ้ำได้' : '🎉 ครบทุกใบแล้ว';
 
   return (
     <section id="game" className="screen" ref={screenRef}>
@@ -274,7 +291,7 @@ export default function Game({ set, onHome, onWin }) {
           onLetter={i => { tap(); letter(i); }} onSpell={() => { tap(); spell(); }} onSay={() => { tap(); sayWord(); }}
           onThai={() => { tap(); sayWord(); }} onClose={closeDetail} />
       )}
-      {win && <WinBox images={WORDS.map(w => ({ src: img(w.id), alt: w.en }))} onAgain={again} onHome={onHome} />}
+      {finished && !detail && <FinishBar name={name} onAgain={again} onHome={onHome} />}
 
       <div id="notice" hidden={!notice}>🔇 เครื่องนี้ยังไม่มีเสียงภาษาไทย<br /><small>บน PC ให้เปิดด้วย <b>Microsoft Edge</b> หรือเพิ่มเสียงภาษาไทยใน Windows<br />(Settings → Time &amp; language → Speech → Add voices → ไทย)</small></div>
       <canvas id="fx" ref={fxRef}></canvas>
