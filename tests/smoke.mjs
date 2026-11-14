@@ -11,7 +11,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SETS } from '../src/sets/index.js';
+import { SETS, FREE_SETS } from '../src/sets/index.js';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.join(REPO, 'dist');
@@ -97,7 +97,7 @@ const takeLog = p => p.evaluate(() => window.__log.splice(0));
   console.log('locked sets');
   const tiles = await p.locator('.setTile').count();
   check(tiles === SETS.length, `${SETS.length} set tiles shown`);
-  check(await p.locator('.setTile.locked').count() === SETS.length - 2 && await p.locator('a.setTile').count() === 2, 'sets 1-2 playable, the other sets are shown but locked');
+  check(await p.locator('.setTile.locked').count() === SETS.length - FREE_SETS && await p.locator('a.setTile').count() === FREE_SETS, `sets 1-${FREE_SETS} playable, the other sets are shown but locked`);
   if (shotsDir) await p.screenshot({ path: path.join(shotsDir, 'home.png') });
   await wait(900);                                             // tiles pop in
   await p.locator('.setTile.locked').first().click({ force: true });   // aria-disabled (still tappable on purpose: it explains why)

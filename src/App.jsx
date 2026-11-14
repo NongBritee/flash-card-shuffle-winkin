@@ -55,7 +55,7 @@ export default function App() {
         : set
           ? <Game key={set.id} set={set} name={name} onHome={goHome} onWin={() => recordWin(set.id)} />
           : <Menu sets={SETS} name={name} onChangeName={() => setEditingName(true)} onLocked={() => setPopup(true)} />}
-      {popup && <Popup icon="🔒" title="ยังไม่เปิดใช้งาน" text="ชุดนี้ยังไม่เปิดให้เล่นนะ เล่น 2 ชุดแรกไปก่อนน้า" onClose={() => setPopup(false)} />}
+      {popup && <Popup icon="🔒" title="ยังไม่เปิดใช้งาน" text="ชุดนี้ยังไม่เปิดให้เล่นนะ เล่นชุดที่เปิดอยู่ไปก่อนน้า" onClose={() => setPopup(false)} />}
     </main>
   );
 }

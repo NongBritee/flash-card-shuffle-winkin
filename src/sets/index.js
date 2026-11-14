@@ -17,6 +17,6 @@ export const SETS = [weather, days, things, home, animals, farm].map(normalize).
 export const getSet = id => SETS.find(s => s.id === id);
 
 // Only the first FREE_SETS sets can be played for now; open the site with ?allow=all to unlock everything.
-export const FREE_SETS = 2;
+export const FREE_SETS = 4;
 export const allowAll = () => new URLSearchParams(location.search).get('allow') === 'all';
 export const isUnlocked = set => allowAll() || set.no <= FREE_SETS;
